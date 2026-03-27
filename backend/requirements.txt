@@ -13,4 +13,5 @@ pydantic-settings>=2.6.0
 # CrewAI and AI dependencies
 crewai
 crewai-tools
+litellm
 groq
