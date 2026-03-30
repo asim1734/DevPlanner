@@ -32,6 +32,7 @@ def init_db() -> None:
     Called during app startup.
     """
     from sqlmodel import SQLModel
+    from models.chat_session import ChatSession
     from models.project import Project
     from models.task import Task
     from models.dependency import TaskDependency

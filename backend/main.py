@@ -65,8 +65,7 @@ async def health():
     }
 
 
-# Route registration will happen in Phase 2
-# from routers import chat, generate, projects
-# app.include_router(chat.router, prefix="/api", tags=["chat"])
-# app.include_router(generate.router, prefix="/api", tags=["generate"])
-# app.include_router(projects.router, prefix="/api", tags=["projects"])
+# Mount routers
+from routers import chat_router
+
+app.include_router(chat_router)
