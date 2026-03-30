@@ -404,5 +404,3 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 ---
 
 ## PROMPT END
-
-When I ask you to start building, begin with the backend. Set up `main.py`, `config.py`, `database.py`, and the SQLModel models first. Do not move to agents or frontend until the database layer is working.

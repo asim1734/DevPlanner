@@ -36,3 +36,4 @@ out/
 *.log
 
 .github/
+.github/agent-instructions.md
