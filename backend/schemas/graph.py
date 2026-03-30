@@ -41,3 +41,16 @@ class GraphSchema(BaseModel):
     """
 
     tasks: List[GraphTaskSchema] = Field(..., description="All tasks with their dependencies")
+
+
+class TaskDependencySchema(BaseModel):
+    """Single task dependency entry with prerequisites."""
+
+    title: str
+    depends_on: List[str]
+
+
+class DependencyGraphSchema(BaseModel):
+    """Dependency mapping output for Phase 8.5."""
+
+    dependencies: List[TaskDependencySchema]
