@@ -1,9 +1,24 @@
 """
-Graph schemas for DAG (Directed Acyclic Graph) representation.
-Output format for the Scrum Master agent.
+Graph and Scrum outputs.
+Scrum Master produces tasks (Phase 8) and dependencies (Phase 9).
 """
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Literal
+
+
+class ScrumTaskSchema(BaseModel):
+    """Single Scrum task derived from PRD + architecture/ERD diagrams."""
+
+    title: str = Field(..., description="Specific task title mapped to PRD features")
+    description: str = Field(..., description="1-2 sentence implementation detail grounded in PRD and diagrams")
+    epic: str = Field(..., description="Epic grouping (e.g., Backend, Frontend, Database, Infrastructure, QA)")
+    effort: Literal["S", "M", "L"] = Field(..., description="Relative effort sizing")
+
+
+class ScrumTaskListSchema(BaseModel):
+    """Flat list of Scrum tasks (Phase 8 output)."""
+
+    tasks: List[ScrumTaskSchema] = Field(..., description="12-20 atomic, feature-mapped tasks")
 
 
 class GraphTaskSchema(BaseModel):

@@ -6,6 +6,7 @@ from crewai import Agent, Task
 from schemas.prd import PRDSchema
 from schemas.wbs import ArchitectOutputSchema
 from .llm import get_llm
+from utils import parse_agent_output
 
 
 def create_architect_agent() -> Agent:
@@ -53,6 +54,7 @@ def create_architect_task(agent: Agent, prd: PRDSchema) -> Task:
         "- Derive tables and relationships from PRD features only\n"
         "- Include primary keys, foreign keys, and cardinality\n"
         "- Never include entities not implied by the PRD\n"
+        "- The PRD is stored as a JSONB column in CHAT_SESSIONS, not as a separate table. Never generate a PRD_DRAFTS entity in the ERD.\n"
         "- Example (derive from PRD, never hardcode this):\n"
         "  erDiagram\n"
         "    CHAT_SESSIONS ||--o{ PROJECTS : generates\n"
@@ -69,13 +71,15 @@ def create_architect_task(agent: Agent, prd: PRDSchema) -> Task:
         f"- Backend: {prd.tech_stack.backend}\n"
         f"- Database: {prd.tech_stack.database}\n"
         f"- Other: {', '.join(prd.tech_stack.other) if prd.tech_stack.other else 'None'}\n"
+        "IMPORTANT: Your response must be raw JSON only. Do not wrap it in ```json``` or any other formatting. Do not add any text before or after the JSON object."
     )
 
     return Task(
         description=description,
-        expected_output="Exactly two Mermaid.js diagrams derived from the PRD",
+        expected_output=(
+            "Exactly two Mermaid.js diagrams derived from the PRD. Return ONLY a valid JSON object. No markdown, no code fences, no explanation. Raw JSON only."
+        ),
         agent=agent,
-        output_pydantic=ArchitectOutputSchema,
     )
 
 

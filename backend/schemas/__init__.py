@@ -4,7 +4,7 @@ Separate from SQLModel database models.
 """
 from .prd import PRDSchema, TechStackSchema
 from .wbs import ArchitectOutputSchema, DiagramSchema
-from .graph import GraphSchema, GraphTaskSchema
+from .graph import GraphSchema, GraphTaskSchema, ScrumTaskSchema, ScrumTaskListSchema
 from .api import NodeSchema, EdgeSchema, ProjectGraphSchema
 
 __all__ = [
@@ -15,6 +15,8 @@ __all__ = [
     "ArchitectOutputSchema",
     "DiagramSchema",
     # Scrum Agent Output
+    "ScrumTaskSchema",
+    "ScrumTaskListSchema",
     "GraphSchema",
     "GraphTaskSchema",
     # API Responses

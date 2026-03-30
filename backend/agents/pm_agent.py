@@ -57,11 +57,13 @@ def create_prd_task(agent: Agent, user_input: str) -> Task:
             "4. Core features (3-10 essential features only)\n"
             "5. What is out of scope (things we won't build)\n"
             "6. Technology stack recommendations (frontend, backend, database)\n\n"
-            "Be specific and actionable. Focus on MVP features only."
+            "Be specific and actionable. Focus on MVP features only.\n"
+            "IMPORTANT: Your response must be raw JSON only. Do not wrap it in ```json``` or any other formatting. Do not add any text before or after the JSON object."
         ),
-        expected_output="A complete PRD with all required fields populated",
+        expected_output=(
+            "A complete PRD with all required fields populated. Return ONLY a valid JSON object. No markdown, no code fences, no explanation. Raw JSON only."
+        ),
         agent=agent,
-        output_json=PRDSchema
     )
 
 
@@ -98,13 +100,15 @@ def create_conversational_task(
             "- core_features: List of 4-6 features (each max 50 chars)\n"
             "- out_of_scope: List of 3-4 excluded items (each max 40 chars)\n"
             "- tech_stack: {frontend, backend, database, other}\n\n"
-            "Keep everything concise and focused on MVP."
+            "Keep everything concise and focused on MVP.\n"
+            "IMPORTANT: Your response must be raw JSON only. Do not wrap it in ```json``` or any other formatting. Do not add any text before or after the JSON object."
         )
         return Task(
             description=description,
-            expected_output="A complete PRD with all required fields populated",
+            expected_output=(
+                "A complete PRD with all required fields populated. Return ONLY a valid JSON object. No markdown, no code fences, no explanation. Raw JSON only."
+            ),
             agent=agent,
-            output_json=PRDSchema
         )
     else:
         # Conversational mode - ask questions or discuss
