@@ -19,6 +19,19 @@ def parse_agent_output(raw: str, schema: Type[T]) -> T:
         # Fallback to Python literal parsing for loosely formatted JSON (e.g., single quotes)
         data = ast.literal_eval(cleaned)
 
+    # Normalize architect diagrams (syntax -> mermaid, add default titles)
+    if "diagrams" in data:
+        normalized_diagrams = []
+        for idx, diag in enumerate(data["diagrams"]):
+            d = dict(diag)
+            if "mermaid" not in d and "syntax" in d:
+                d["mermaid"] = d.pop("syntax")
+            if "title" not in d or not d.get("title"):
+                default_title = "System Architecture" if d.get("type") == "architecture" else "Entity Relationship Diagram"
+                d["title"] = default_title
+            normalized_diagrams.append(d)
+        data["diagrams"] = normalized_diagrams
+
     # Filter out invalid tasks before validation
     if "tasks" in data:
         data["tasks"] = [
@@ -30,6 +43,7 @@ def parse_agent_output(raw: str, schema: Type[T]) -> T:
             and "prd_drafts" not in t.get("description", "").lower()
         ]
 
+    # Deduplicate dependencies by title
     if "dependencies" in data:
         seen = {}
         for dep in data["dependencies"]:

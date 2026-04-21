@@ -61,6 +61,13 @@ def create_architect_task(agent: Agent, prd: PRDSchema) -> Task:
         "    PROJECTS ||--o{ TASKS : contains\n"
         "    TASKS ||--o{ TASK_DEPENDENCIES : has\n\n"
         "Output only the two diagrams. Nothing else.\n"
+        "Output format (JSON only): {\n"
+        "  \"diagrams\": [\n"
+        "    { \"title\": \"System Architecture\", \"type\": \"architecture\", \"mermaid\": \"<graph TD mermaid>\" },\n"
+        "    { \"title\": \"Entity Relationship Diagram\", \"type\": \"erd\", \"mermaid\": \"<erDiagram mermaid>\" }\n"
+        "  ]\n"
+        "}\n"
+        "Use keys 'title' and 'mermaid' only (never 'syntax'). Titles must be present for both diagrams.\n"
         f"\nProject Name: {prd.project_name}\n"
         f"Problem Statement: {prd.problem_statement}\n"
         f"Target Users: {prd.target_users}\n"
@@ -77,7 +84,7 @@ def create_architect_task(agent: Agent, prd: PRDSchema) -> Task:
     return Task(
         description=description,
         expected_output=(
-            "Exactly two Mermaid.js diagrams derived from the PRD. Return ONLY a valid JSON object. No markdown, no code fences, no explanation. Raw JSON only."
+            "Exactly two Mermaid.js diagrams derived from the PRD. Each diagram must include keys: title, type, mermaid. Return ONLY a valid JSON object. No markdown, no code fences, no explanation. Raw JSON only."
         ),
         agent=agent,
     )

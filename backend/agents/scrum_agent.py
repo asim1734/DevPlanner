@@ -85,7 +85,7 @@ def create_dependency_task(
     """Create the dependency mapping task (Phase 8.5)."""
 
     titles = [t.title for t in task_list.tasks]
-    formatted_titles = "\n".join(f"- {title}" for title in titles)
+    formatted_titles = "\n".join(f"{idx}. {title}" for idx, title in enumerate(titles, start=1))
 
     description = (
         "You are given a list of development tasks. Map the dependency relationships between them.\n\n"
