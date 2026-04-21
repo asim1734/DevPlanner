@@ -2,7 +2,7 @@
 Orchestrates crew execution, dependency validation, and DB persistence.
 """
 from dataclasses import dataclass
-from typing import List
+from typing import Callable, List, Optional
 from uuid import UUID
 import asyncio
 
@@ -36,10 +36,20 @@ class GenerationResult:
     warnings: List[str]
 
 
+ProgressCallback = Callable[[str, str, str], None]
+
+
+def _emit_progress(callback: Optional[ProgressCallback], stage: str, status: str, message: str) -> None:
+    """Emit generation progress updates when callback is provided."""
+    if callback:
+        callback(stage, status, message)
+
+
 async def generate_project_from_prd(
     session_id: UUID,
     prd: PRDSchema,
     db_session: Session,
+    progress_callback: Optional[ProgressCallback] = None,
 ) -> GenerationResult:
     """
     Run full crew orchestration for an approved PRD and persist outputs.
@@ -47,12 +57,14 @@ async def generate_project_from_prd(
     Raises:
         ValueError: If dependency graph has a cycle
     """
-    crew_output = await run_crew(prd)
+    crew_output = await run_crew(prd, progress_callback=progress_callback)
 
     warnings = validate_dependency_titles(crew_output.dependencies)
 
     if has_cycle(crew_output.dependencies):
         raise ValueError("Cycle detected in dependency graph")
+
+    _emit_progress(progress_callback, "saving", "running", "Saving your project to database...")
 
     project, task_rows, dep_rows = save_project_bundle(
         session_id=session_id,
@@ -61,6 +73,8 @@ async def generate_project_from_prd(
         dependencies=crew_output.dependencies,
         db_session=db_session,
     )
+
+    _emit_progress(progress_callback, "saving", "completed", "Project data saved.")
 
     return GenerationResult(
         project=project,
@@ -74,6 +88,7 @@ async def generate_project_from_prd(
 async def generate_project_for_session(
     session_id: UUID,
     db_session: Session,
+    progress_callback: Optional[ProgressCallback] = None,
 ) -> GenerationResult:
     """
     Generate and persist a project for a locked chat session.
@@ -98,12 +113,19 @@ async def generate_project_for_session(
     if existing_project:
         raise ValueError(f"Project already exists for session {session_id}")
 
+    _emit_progress(progress_callback, "prd", "confirmed", "PRD confirmed")
+
     increment_generation_attempts(session_id, db_session)
     set_generation_status(session_id, "pending", db_session)
 
     try:
         prd = PRDSchema.model_validate(session.prd_json)
-        result = await generate_project_from_prd(session_id, prd, db_session)
+        result = await generate_project_from_prd(
+            session_id=session_id,
+            prd=prd,
+            db_session=db_session,
+            progress_callback=progress_callback,
+        )
         set_generation_status(session_id, "success", db_session)
         return result
     except Exception:

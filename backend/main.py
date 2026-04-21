@@ -66,6 +66,7 @@ async def health():
 
 
 # Mount routers
-from routers import chat_router
+from routers import chat_router, generate_router
 
 app.include_router(chat_router)
+app.include_router(generate_router)

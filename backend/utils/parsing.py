@@ -32,6 +32,20 @@ def parse_agent_output(raw: str, schema: Type[T]) -> T:
             normalized_diagrams.append(d)
         data["diagrams"] = normalized_diagrams
 
+    # Normalize PRD fields that frequently arrive as single strings.
+    if "tech_stack" in data and isinstance(data["tech_stack"], dict):
+        other = data["tech_stack"].get("other")
+        if isinstance(other, str):
+            data["tech_stack"]["other"] = [other]
+        elif other is None:
+            data["tech_stack"]["other"] = []
+
+    if "core_features" in data and isinstance(data["core_features"], str):
+        data["core_features"] = [data["core_features"]]
+
+    if "out_of_scope" in data and isinstance(data["out_of_scope"], str):
+        data["out_of_scope"] = [data["out_of_scope"]]
+
     # Filter out invalid tasks before validation
     if "tasks" in data:
         data["tasks"] = [

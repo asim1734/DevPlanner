@@ -5,7 +5,7 @@ from /generate, the PRD is already finalized (locked) in chat_sessions.prd_json.
 `run_crew` always receives a PRDSchema input.
 """
 from dataclasses import dataclass
-from typing import List
+from typing import Callable, List, Optional
 import asyncio
 
 from crewai import Crew, Process
@@ -35,6 +35,15 @@ class CrewOutput:
     diagrams: List[DiagramSchema]
     tasks: List[ScrumTaskSchema]
     dependencies: List[TaskDependencySchema]
+
+
+ProgressCallback = Callable[[str, str, str], None]
+
+
+def _emit_progress(callback: Optional[ProgressCallback], stage: str, status: str, message: str) -> None:
+    """Emit progress updates when a callback is provided."""
+    if callback:
+        callback(stage, status, message)
 
 
 def _mock_prd() -> PRDSchema:
@@ -68,15 +77,18 @@ def _mock_prd() -> PRDSchema:
     )
 
 
-async def run_crew(prd: PRDSchema) -> CrewOutput:
+async def run_crew(prd: PRDSchema, progress_callback: Optional[ProgressCallback] = None) -> CrewOutput:
     # Step 1: Architect
+    _emit_progress(progress_callback, "architect", "running", "Architect is designing your task breakdown...")
     architect = create_architect_agent()
     architect_task = create_architect_task(architect, prd)
     crew_arch = Crew(agents=[architect], tasks=[architect_task], process=Process.sequential, verbose=True)
     crew_arch.kickoff()
     arch_output = parse_agent_output(architect_task.output.raw, ArchitectOutputSchema)
+    _emit_progress(progress_callback, "architect", "completed", "Architecture and ERD diagrams generated.")
 
     # Step 2: Scrum tasks (Phase 8)
+    _emit_progress(progress_callback, "scrum", "running", "Scrum Master is generating tasks and dependencies...")
     scrum = create_scrum_agent()
     task_gen_task = create_scrum_task_generation_task(scrum, prd, arch_output)
     crew_tasks = Crew(agents=[scrum], tasks=[task_gen_task], process=Process.sequential, verbose=True)
@@ -88,8 +100,10 @@ async def run_crew(prd: PRDSchema) -> CrewOutput:
     crew_deps = Crew(agents=[scrum], tasks=[dep_task], process=Process.sequential, verbose=True)
     crew_deps.kickoff()
     dep_list = parse_agent_output(dep_task.output.raw, DependencyGraphSchema)
+    _emit_progress(progress_callback, "scrum", "completed", "Tasks and dependency mapping generated.")
 
     # Step 4: Validate
+    _emit_progress(progress_callback, "dag_validation", "running", "Validating DAG for cycles...")
     unknown_refs = validate_dependency_titles(dep_list.dependencies)
     if unknown_refs:
         print("Unknown dependency references:")
@@ -98,6 +112,7 @@ async def run_crew(prd: PRDSchema) -> CrewOutput:
 
     if has_cycle(dep_list.dependencies):
         raise ValueError("Cycle detected in dependency graph")
+    _emit_progress(progress_callback, "dag_validation", "completed", "Dependency graph is valid.")
 
     return CrewOutput(
         prd=prd,

@@ -20,6 +20,7 @@ from services.chat_service import (
     get_conversation_history
 )
 from database import get_session as get_db_session
+from utils import parse_agent_output
 
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -101,25 +102,32 @@ async def chat(request: ChatRequest, db_session: Session = Depends(get_db_sessio
 
         # Handle result based on mode
         if mode == "finalize":
-            # Extract PRD from result
-            if result and hasattr(result, 'json_dict'):
-                try:
+            # Extract PRD from structured json_dict when present, otherwise parse raw JSON.
+            try:
+                prd = None
+
+                if result and hasattr(result, "json_dict") and result.json_dict is not None:
                     prd = PRDSchema.model_validate(result.json_dict)
-                    update_prd_draft(session.id, prd, db_session)
 
-                    agent_message = "I've created your Product Requirements Document. Here it is:"
-                    add_message(session.id, "assistant", agent_message, db_session)
+                if prd is None and result and hasattr(result, "raw") and result.raw:
+                    prd = parse_agent_output(result.raw, PRDSchema)
 
-                    return ChatResponse(
-                        session_id=session.id,
-                        message=agent_message,
-                        prd_draft=prd,
-                        is_final=True
-                    )
-                except Exception as e:
-                    raise HTTPException(status_code=500, detail=f"Failed to validate PRD: {str(e)}")
-            else:
-                raise HTTPException(status_code=500, detail="Failed to generate PRD")
+                if prd is None:
+                    raise ValueError("No PRD payload found in agent output")
+
+                update_prd_draft(session.id, prd, db_session)
+
+                agent_message = "I've created your Product Requirements Document. Here it is:"
+                add_message(session.id, "assistant", agent_message, db_session)
+
+                return ChatResponse(
+                    session_id=session.id,
+                    message=agent_message,
+                    prd_draft=prd,
+                    is_final=True
+                )
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Failed to validate PRD: {str(e)}")
         else:
             # Conversational response
             if result and hasattr(result, 'raw'):
