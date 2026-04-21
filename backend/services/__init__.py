@@ -25,6 +25,11 @@ from .project_service import (
     update_task_status,
     delete_project,
 )
+from .generation_service import (
+    GenerationResult,
+    generate_project_from_prd,
+    generate_project_for_session,
+)
 
 __all__ = [
     "has_cycle",
@@ -47,4 +52,7 @@ __all__ = [
     "save_project_bundle",
     "update_task_status",
     "delete_project",
+    "GenerationResult",
+    "generate_project_from_prd",
+    "generate_project_for_session",
 ]
