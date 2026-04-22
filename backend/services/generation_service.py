@@ -72,6 +72,7 @@ async def generate_project_from_prd(
         tasks=crew_output.tasks,
         dependencies=crew_output.dependencies,
         db_session=db_session,
+        diagrams_json={"diagrams": [d.model_dump() for d in crew_output.diagrams]},
     )
 
     _emit_progress(progress_callback, "saving", "completed", "Project data saved.")

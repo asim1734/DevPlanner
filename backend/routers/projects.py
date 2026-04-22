@@ -1,6 +1,6 @@
 """Project retrieval endpoints (Phase 13)."""
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -35,6 +35,7 @@ class ProjectDetailSchema(ProjectSummarySchema):
     """Detailed project view."""
 
     prd_json: Dict[str, Any]
+    diagrams_json: Dict[str, Any] | None = None
     tasks_count: int = Field(..., ge=0)
     dependencies_count: int = Field(..., ge=0)
 
@@ -81,6 +82,7 @@ async def get_project_by_id(
         status=project.status,
         created_at=project.created_at,
         prd_json=project.prd_json,
+        diagrams_json=project.diagrams_json,
         tasks_count=len(tasks),
         dependencies_count=len(dependencies),
     )
@@ -120,3 +122,35 @@ async def get_project_graph(
     ]
 
     return ProjectGraphSchema(nodes=nodes, edges=edges)
+
+
+class TaskStatusUpdateRequest(BaseModel):
+    """Request body to update a task's status."""
+
+    status: Literal["todo", "in_progress", "complete"] = Field(
+        ..., description="New task status: todo | in_progress | complete"
+    )
+
+
+@router.patch("/{project_id}/tasks/{task_id}")
+async def update_task_status(
+    project_id: UUID,
+    task_id: UUID,
+    request: TaskStatusUpdateRequest,
+    db_session: Session = Depends(get_db_session),
+) -> NodeSchema:
+    """Update the status of a task in a project."""
+    from services.project_service import update_task_status as update_task_status_service
+
+    updated = update_task_status_service(project_id, task_id, request.status, db_session)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    return NodeSchema(
+        id=str(updated.id),
+        title=updated.title,
+        description=updated.description,
+        epic=updated.epic,
+        effort=updated.effort,
+        status=updated.status,
+    )

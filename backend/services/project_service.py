@@ -1,7 +1,7 @@
 """Project persistence service.
 Handles storing and retrieving project plans (project, tasks, dependencies).
 """
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID
 
 from sqlmodel import Session, select
@@ -13,13 +13,14 @@ from schemas.prd import PRDSchema
 from schemas.graph import ScrumTaskSchema, TaskDependencySchema
 
 
-def create_project(session_id: UUID, prd: PRDSchema, db_session: Session) -> Project:
+def create_project(session_id: UUID, prd: PRDSchema, db_session: Session, diagrams_json: Optional[Dict[str, Any]] = None) -> Project:
     """Create a project record from a finalized PRD."""
     project = Project(
         session_id=session_id,
         name=prd.project_name,
         description=prd.problem_statement,
         prd_json=prd.model_dump(),
+        diagrams_json=diagrams_json,
     )
     db_session.add(project)
     db_session.commit()
@@ -73,6 +74,7 @@ def save_project_bundle(
     tasks: List[ScrumTaskSchema],
     dependencies: List[TaskDependencySchema],
     db_session: Session,
+    diagrams_json: Optional[Dict[str, Any]] = None,
 ) -> Tuple[Project, List[Task], List[TaskDependency]]:
     """
     Persist a full generated plan in one transaction.
@@ -94,6 +96,7 @@ def save_project_bundle(
         name=prd.project_name,
         description=prd.problem_statement,
         prd_json=prd.model_dump(),
+        diagrams_json=diagrams_json,
     )
     db_session.add(project)
     db_session.flush()

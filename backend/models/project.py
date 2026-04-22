@@ -21,5 +21,9 @@ class Project(SQLModel, table=True):
     name: str = Field(max_length=255, nullable=False)
     description: str = Field(nullable=False)
     prd_json: Dict[str, Any] = Field(sa_column=Column(JSON, nullable=False))
+    diagrams_json: Optional[Dict[str, Any]] = Field(
+        default=None,
+        sa_column=Column(JSON, nullable=True)
+    )
     status: str = Field(default="active", max_length=50)  # "active" | "complete"
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)

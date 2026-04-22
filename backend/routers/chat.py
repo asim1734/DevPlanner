@@ -29,7 +29,7 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 class ChatRequest(BaseModel):
     """Request body for chat endpoint."""
     session_id: Optional[UUID] = Field(None, description="Session ID (creates new if not provided)")
-    message: str = Field(..., description="User's message")
+    message: str = Field(..., min_length=1, description="User's message")
 
 
 class ChatResponse(BaseModel):
