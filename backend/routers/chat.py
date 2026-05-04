@@ -2,7 +2,7 @@
 Chat endpoint for PM agent conversation.
 Manages multi-turn conversations and PRD drafting with database persistence.
 """
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
@@ -38,6 +38,13 @@ class ChatResponse(BaseModel):
     message: str = Field(..., description="Agent's response")
     prd_draft: Optional[PRDSchema] = Field(None, description="PRD draft if available")
     is_final: bool = Field(False, description="Whether this is the final PRD")
+    questions: Optional[List[str]] = Field(default=None, description="Follow-up questions if provided")
+
+
+class PMChatPayload(BaseModel):
+    """Structured conversational payload from PM agent."""
+    message: str = Field(..., description="Concise response text")
+    questions: List[str] = Field(default_factory=list, description="Follow-up questions")
 
 
 @router.post("", response_model=ChatResponse)
@@ -130,14 +137,34 @@ async def chat(request: ChatRequest, db_session: Session = Depends(get_db_sessio
                 raise HTTPException(status_code=500, detail=f"Failed to validate PRD: {str(e)}")
         else:
             # Conversational response
-            if result and hasattr(result, 'raw'):
+            questions: Optional[List[str]] = None
+            payload: Optional[PMChatPayload] = None
+
+            if result and hasattr(result, "json_dict") and result.json_dict is not None:
+                payload = PMChatPayload.model_validate(result.json_dict)
+
+            if payload is None and result and hasattr(result, "raw") and result.raw:
+                try:
+                    payload = parse_agent_output(result.raw, PMChatPayload)
+                except Exception:
+                    payload = None
+
+            if payload:
+                agent_message = payload.message
+                questions = payload.questions
+            elif result and hasattr(result, "raw"):
                 agent_message = result.raw
             elif result:
                 agent_message = str(result)
             else:
                 raise HTTPException(status_code=500, detail="No response from agent")
 
-            add_message(session.id, "assistant", agent_message, db_session)
+            message_for_history = agent_message
+            if questions:
+                bullet_lines = "\n".join([f"- {question}" for question in questions])
+                message_for_history = f"{agent_message}\n{bullet_lines}"
+
+            add_message(session.id, "assistant", message_for_history, db_session)
 
             # Load latest session to get PRD if available
             session = get_session(session.id, db_session)
@@ -149,7 +176,8 @@ async def chat(request: ChatRequest, db_session: Session = Depends(get_db_sessio
                 session_id=session.id,
                 message=agent_message,
                 prd_draft=prd_draft,
-                is_final=False
+                is_final=False,
+                questions=questions
             )
 
     except HTTPException:

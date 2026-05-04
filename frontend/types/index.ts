@@ -86,6 +86,7 @@ export interface ChatResponse {
   message: string;
   prd_draft?: PRD | null;
   is_final: boolean;
+  questions?: string[] | null;
 }
 
 export interface GenerateRequest {

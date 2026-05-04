@@ -11,11 +11,13 @@ import type {
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
+  timestamp?: string;
 };
 
 type ProjectState = {
   sessionId: string | null;
   chatMessages: ChatMessage[];
+  chatQuestions: string[];
   prdDraft: PRD | null;
   isFinal: boolean;
   isLocked: boolean;
@@ -27,6 +29,7 @@ type ProjectState = {
   error: string | null;
   setSessionId: (sessionId: string | null) => void;
   addChatMessage: (message: ChatMessage) => void;
+  setChatQuestions: (questions: string[]) => void;
   setPrdDraft: (prd: PRD | null) => void;
   setIsFinal: (isFinal: boolean) => void;
   setIsLocked: (isLocked: boolean) => void;
@@ -41,6 +44,7 @@ type ProjectState = {
 
 const initialChatState = {
   chatMessages: [],
+  chatQuestions: [],
   prdDraft: null,
   isFinal: false,
   isLocked: false,
@@ -60,6 +64,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
     set((state) => ({
       chatMessages: [...state.chatMessages, message],
     })),
+  setChatQuestions: (chatQuestions) => set({ chatQuestions }),
   setPrdDraft: (prdDraft) => set({ prdDraft }),
   setIsFinal: (isFinal) => set({ isFinal }),
   setIsLocked: (isLocked) => set({ isLocked }),

@@ -101,7 +101,8 @@ def create_conversational_task(
             "- out_of_scope: List of 3-4 excluded items (each max 40 chars)\n"
             "- tech_stack: {frontend, backend, database, other}\n\n"
             "Keep everything concise and focused on MVP.\n"
-            "IMPORTANT: Your response must be raw JSON only. Do not wrap it in ```json``` or any other formatting. Do not add any text before or after the JSON object."
+            "IMPORTANT: Your response must be raw JSON only. Do not wrap it in ```json``` or any other formatting. Do not add any text before or after the JSON object.\n"
+            "CRITICAL: Return ONLY a raw JSON object. No markdown headers, no bullet points, no prose."
         )
         return Task(
             description=description,
@@ -121,7 +122,18 @@ def create_conversational_task(
             "- Help them think through their idea\n"
             "- When you feel you have enough information, you can suggest creating a PRD\n"
             "- Be conversational and helpful\n\n"
-            "Respond to the user's latest message."
+            "Response rules:\n"
+            "- Be concise (1-3 short sentences max)\n"
+            "- Ask 2-3 follow-up questions when questions are needed\n"
+            "- If the user says anything like 'your choice', 'you decide', 'idk', 'up to you', 'make the choice', do NOT ask follow-ups. Make a reasonable decision and move on\n"
+            "- If the user expresses frustration or impatience, stop asking questions and suggest finalizing the PRD\n"
+            "- If the user says 'looks good' or 'this works', stop asking questions and suggest finalizing the PRD\n\n"
+            "Output format (RAW JSON only, no markdown, no bullet points, no leading/trailing text):\n"
+            "{\n"
+            "  \"message\": \"short response text\",\n"
+            "  \"questions\": [\"q1\", \"q2\", \"q3\"]\n"
+            "}\n\n"
+            "Respond to the user's latest message using that JSON format."
         )
         return Task(
             description=description,
