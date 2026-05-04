@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
 
 import ChatWindow from "@/components/chat/ChatWindow";
@@ -14,6 +15,7 @@ function formatTimestamp(date: Date): string {
 }
 
 export default function ChatPage() {
+  const router = useRouter();
   const {
     sessionId,
     chatMessages,
@@ -23,6 +25,8 @@ export default function ChatPage() {
     isLocked,
     isLoading,
     error,
+    generationEvents,
+    generationAttempts,
     addChatMessage,
     setChatQuestions,
     setSessionId,
@@ -30,6 +34,8 @@ export default function ChatPage() {
     setIsFinal,
     setIsLocked,
     addGenerationEvent,
+    incrementGenerationAttempts,
+    resetGenerationAttempts,
     setLoading,
     setError,
   } = useProjectStore();
@@ -124,8 +130,12 @@ export default function ChatPage() {
 
     setError(null);
     setLoading(true);
+    incrementGenerationAttempts();
 
     try {
+      // Navigate to generate page to show progress
+      router.push("/generate");
+
       await streamGenerate(
         sessionId,
         (event) => {
@@ -143,7 +153,7 @@ export default function ChatPage() {
     } finally {
       setLoading(false);
     }
-  }, [addGenerationEvent, sessionId, setError, setLoading]);
+  }, [addGenerationEvent, sessionId, setError, setLoading, incrementGenerationAttempts, router]);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,#fef3c7,transparent_40%),radial-gradient(circle_at_top_right,#bae6fd,transparent_45%),linear-gradient(180deg,#f8fafc,#ffffff)] px-6 py-10">

@@ -79,7 +79,7 @@ async def generate_project(
                     result_holder["project_id"] = str(result.project.id)
                     result_holder["warnings_count"] = len(result.warnings)
             except Exception as exc:  # pragma: no cover - runtime path in endpoint thread
-                error_holder["error"] = exc
+                    error_holder["error"] = exc
             finally:
                 done.set()
 
@@ -92,11 +92,28 @@ async def generate_project(
             await asyncio.sleep(0.1)
 
         if "error" in error_holder:
+            # Sanitize error messages before sending to the client over SSE.
+            raw = str(error_holder["error"])
+            if (
+                "Failed to parse JSON" in raw
+                or "Expecting" in raw
+                or "unterminated" in raw
+                or "JSONDecodeError" in raw
+            ):
+                user_message = (
+                    "Agent returned a malformed response during generation. "
+                    "Try retrying generation or edit the PRD to simplify the inputs."
+                )
+                stage_name = "parse_error"
+            else:
+                user_message = "Project generation failed. Please retry or check server logs for details."
+                stage_name = "failed"
+
             yield _sse(
                 {
-                    "stage": "failed",
+                    "stage": stage_name,
                     "status": "error",
-                    "message": str(error_holder["error"]),
+                    "message": user_message,
                 }
             )
             return

@@ -46,11 +46,17 @@ def create_scrum_task_generation_task(
         "- If a task is out of scope, do NOT include it in the output at all. Omit it entirely. Never include a task with description 'This task is out of scope'.\n"
         "- Do NOT generate any task related to a PRD_DRAFTS table. PRD data is stored as a JSONB column inside chat_sessions, not as a separate table. Any task mentioning PRD_DRAFTS must be omitted entirely.\n"
         "- No generic boilerplate (e.g., 'Set up CI', 'Configure FastAPI', 'Initialize Next.js').\n"
-        "- Each task includes: title, description (1-2 sentences), epic (Backend, Frontend, Database, Infrastructure, QA), effort (S/M/L).\n"
+        "- Each task includes: title, description (1-2 sentences, NO newlines), epic (Backend, Frontend, Database, Infrastructure, QA), effort (S/M/L).\n"
         "- Titles must be specific (e.g., 'Implement POST /chat endpoint with session history and PM agent invocation').\n"
-        "- Descriptions state what to build, what it connects to, and done criteria.\n"
+        "- Descriptions state what to build, what it connects to, and done criteria. Keep descriptions on ONE line only.\n"
         "- Do not invent components/entities beyond the PRD and diagrams.\n"
         "- Avoid duplicates and overlapping scope.\n\n"
+        "JSON Requirements:\n"
+        "- MUST return valid, parseable JSON.\n"
+        "- NO literal newlines inside string values. Replace line breaks with spaces.\n"
+        "- NO multiline strings. All descriptions must fit on a single line.\n"
+        "- All quotes must be properly escaped.\n"
+        "- Each field value must be a valid JSON string or primitive.\n\n"
         "Output format (JSON only): {\n  \"tasks\": [ { \"title\": ..., \"description\": ..., \"epic\": ..., \"effort\": ... }, ... ]\n}\n\n"
         "Inputs:\n"
         f"PRD Project Name: {prd.project_name}\n"
@@ -67,7 +73,7 @@ def create_scrum_task_generation_task(
         f"{architecture_mermaid}\n\n"
         "ERD Diagram (Mermaid):\n"
         f"{erd_mermaid}\n"
-        "IMPORTANT: Your response must be raw JSON only. Do not wrap it in ```json``` or any other formatting. Do not add any text before or after the JSON object."
+        "CRITICAL: Your response must be raw JSON only. Do not wrap it in ```json``` or any other formatting. Do not add any text before or after the JSON object. Every string value MUST be on a single line."
     )
 
     return Task(

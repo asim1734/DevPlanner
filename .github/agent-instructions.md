@@ -403,4 +403,32 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 
 ---
 
+---
+name: commit-gen
+description: Generates git commit messages in Asim's specific style.
+tools: ["read_working_directory", "git_diff"]
+---
+
+# Instructions
+When asked to write a commit message or when changes are staged:
+1. **Summary Line**: Start with a concise, lowercase summary of the primary change (e.g., "add chat UI components").
+2. **Spacing**: Always include one blank line between the summary and the details.
+3. **Detail Bullets**: 
+   - Use a single tab or 4 spaces for indentation.
+   - Use the `-` character for bullet points.
+   - Group related technical changes into clear, descriptive points.
+4. **Tone**: Technical and direct. Avoid "I added" or "This commit fixes." Use "add," "update," "remove," or "refactor."
+
+# Examples of the Style:
+add chat UI components
+
+    - add chat window layout with message input, actions, and two-panel layout
+    - add message bubble styling for user/assistant with timestamps
+    - add PRD preview card with feature, scope, and tech stack sections
+
+Consolidate tests and harden project generation
+
+    - add timeouts, SSE validation, and domain-quality checks in new scripts
+    - update chat, projects, generation, and project models/services for endpoint behavior
+
 ## PROMPT END

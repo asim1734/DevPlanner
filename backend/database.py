@@ -7,14 +7,20 @@ from typing import Generator
 from config import settings
 
 
-# Create database engine
-engine = create_engine(
-    settings.database_url,
-    echo=settings.debug,
-    pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10
-)
+# Create database engine with appropriate settings for the database type
+engine_kwargs = {
+    "echo": settings.debug,
+    "pool_pre_ping": True,
+}
+
+# Add connection pooling only for non-SQLite databases
+if not settings.database_url.startswith("sqlite"):
+    engine_kwargs.update({
+        "pool_size": 5,
+        "max_overflow": 10,
+    })
+
+engine = create_engine(settings.database_url, **engine_kwargs)
 
 
 def get_session() -> Generator[Session, None, None]:
@@ -36,5 +42,6 @@ def init_db() -> None:
     from models.project import Project
     from models.task import Task
     from models.dependency import TaskDependency
+    from models.parse_failure import ParseFailure
 
     SQLModel.metadata.create_all(engine)

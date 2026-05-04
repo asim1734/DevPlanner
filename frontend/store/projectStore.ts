@@ -22,6 +22,7 @@ type ProjectState = {
   isFinal: boolean;
   isLocked: boolean;
   generationEvents: GenerateEvent[];
+  generationAttempts: number;
   projects: ProjectSummary[];
   selectedProject: ProjectDetail | null;
   projectGraph: ProjectGraph | null;
@@ -34,6 +35,8 @@ type ProjectState = {
   setIsFinal: (isFinal: boolean) => void;
   setIsLocked: (isLocked: boolean) => void;
   addGenerationEvent: (event: GenerateEvent) => void;
+  incrementGenerationAttempts: () => void;
+  resetGenerationAttempts: () => void;
   setProjects: (projects: ProjectSummary[]) => void;
   setSelectedProject: (project: ProjectDetail | null) => void;
   setProjectGraph: (graph: ProjectGraph | null) => void;
@@ -49,6 +52,7 @@ const initialChatState = {
   isFinal: false,
   isLocked: false,
   generationEvents: [],
+  generationAttempts: 0,
 };
 
 export const useProjectStore = create<ProjectState>((set) => ({
@@ -72,6 +76,15 @@ export const useProjectStore = create<ProjectState>((set) => ({
     set((state) => ({
       generationEvents: [...state.generationEvents, event],
     })),
+  incrementGenerationAttempts: () =>
+    set((state) => ({
+      generationAttempts: state.generationAttempts + 1,
+    })),
+  resetGenerationAttempts: () =>
+    set({
+      generationAttempts: 0,
+      generationEvents: [],
+    }),
   setProjects: (projects) => set({ projects }),
   setSelectedProject: (selectedProject) => set({ selectedProject }),
   setProjectGraph: (projectGraph) => set({ projectGraph }),

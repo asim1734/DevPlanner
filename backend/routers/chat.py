@@ -134,7 +134,40 @@ async def chat(request: ChatRequest, db_session: Session = Depends(get_db_sessio
                     is_final=True
                 )
             except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Failed to validate PRD: {str(e)}")
+                # Do not expose raw parse errors to clients. Log the error server-side
+                # and return a friendly message so the frontend doesn't break.
+                try:
+                    # prefer logging if a logger is configured
+                    import logging
+
+                    logging.getLogger("devplanner").error("PRD validation failed", exc_info=e)
+                except Exception:
+                    # fallback to print
+                    print("PRD validation failed:", e)
+
+                user_message = (
+                    "Agent produced an invalid PRD response. The response could not be parsed. "
+                    "Please retry generation or continue the conversation to refine the PRD."
+                )
+
+                # Add a helpful assistant message to history and return a non-final ChatResponse
+                add_message(session.id, "assistant", user_message, db_session)
+
+                # Return current session state without marking final
+                session = get_session(session.id, db_session)
+                prd_draft = None
+                if session and session.prd_json:
+                    try:
+                        prd_draft = PRDSchema.model_validate(session.prd_json)
+                    except Exception:
+                        prd_draft = None
+
+                return ChatResponse(
+                    session_id=session.id,
+                    message=user_message,
+                    prd_draft=prd_draft,
+                    is_final=False,
+                )
         else:
             # Conversational response
             questions: Optional[List[str]] = None

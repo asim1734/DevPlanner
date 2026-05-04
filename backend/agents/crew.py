@@ -8,7 +8,8 @@ from dataclasses import dataclass
 from typing import Callable, List, Optional
 import asyncio
 
-from crewai import Crew, Process
+from crewai import Crew, Process, Task
+import logging
 
 from schemas import (
     PRDSchema,
@@ -44,6 +45,42 @@ def _emit_progress(callback: Optional[ProgressCallback], stage: str, status: str
     """Emit progress updates when a callback is provided."""
     if callback:
         callback(stage, status, message)
+
+
+def _attempt_repair(agent, raw_text: str, schema, label: str, attempts: int = 2):
+    """
+    Try to repair malformed agent output by asking the same agent to correct it.
+    Returns parsed object on success or raises the last exception.
+    """
+    logger = logging.getLogger("devplanner")
+    last_raw = raw_text
+    for attempt in range(1, attempts + 1):
+        try:
+            logger.info("Attempting repair #%d for %s", attempt, label)
+            repair_prompt = (
+                "The previous response was intended to be a JSON object but appears malformed.\n"
+                "Your task: fix the malformed JSON and return ONLY the corrected JSON object that conforms to the expected schema.\n"
+                "Do NOT add any explanation or markdown.\n\n"
+                f"Previous output:\n{last_raw}\n\n"
+                "Return only the corrected JSON object."
+            )
+
+            repair_task = Task(description=repair_prompt, agent=agent)
+            repair_crew = Crew(agents=[agent], tasks=[repair_task], process=Process.sequential, verbose=False)
+            repair_crew.kickoff()
+
+            repaired_raw = repair_task.output.raw
+            logger.debug("Repaired raw (attempt %d): %s", attempt, repaired_raw)
+            parsed = parse_agent_output(repaired_raw, schema)
+            logger.info("Repair succeeded on attempt %d for %s", attempt, label)
+            return parsed
+        except Exception:
+            logger.exception("Repair attempt %d failed for %s", attempt, label)
+            # prepare for next attempt
+            last_raw = repair_task.output.raw if hasattr(repair_task, "output") and repair_task.output and getattr(repair_task.output, "raw", None) else last_raw
+            continue
+    # If we reach here, all attempts failed — re-raise
+    raise RuntimeError(f"All repair attempts failed for {label}")
 
 
 def _mock_prd() -> PRDSchema:
@@ -84,7 +121,14 @@ async def run_crew(prd: PRDSchema, progress_callback: Optional[ProgressCallback]
     architect_task = create_architect_task(architect, prd)
     crew_arch = Crew(agents=[architect], tasks=[architect_task], process=Process.sequential, verbose=True)
     crew_arch.kickoff()
-    arch_output = parse_agent_output(architect_task.output.raw, ArchitectOutputSchema)
+    try:
+        arch_output = parse_agent_output(architect_task.output.raw, ArchitectOutputSchema)
+    except Exception:
+        logging.getLogger("devplanner").exception(
+            "Failed to parse architect output; attempting repair"
+        )
+        # Attempt agent-driven repair
+        arch_output = _attempt_repair(architect, architect_task.output.raw, ArchitectOutputSchema, "architect output")
     _emit_progress(progress_callback, "architect", "completed", "Architecture and ERD diagrams generated.")
 
     # Step 2: Scrum tasks (Phase 8)
@@ -93,13 +137,25 @@ async def run_crew(prd: PRDSchema, progress_callback: Optional[ProgressCallback]
     task_gen_task = create_scrum_task_generation_task(scrum, prd, arch_output)
     crew_tasks = Crew(agents=[scrum], tasks=[task_gen_task], process=Process.sequential, verbose=True)
     crew_tasks.kickoff()
-    task_list = parse_agent_output(task_gen_task.output.raw, ScrumTaskListSchema)
+    try:
+        task_list = parse_agent_output(task_gen_task.output.raw, ScrumTaskListSchema)
+    except Exception:
+        logging.getLogger("devplanner").exception(
+            "Failed to parse scrum task list output; attempting repair"
+        )
+        task_list = _attempt_repair(scrum, task_gen_task.output.raw, ScrumTaskListSchema, "scrum task list")
 
     # Step 3: Dependencies (Phase 8.5)
     dep_task = create_dependency_task(scrum, task_list, [task_gen_task])
     crew_deps = Crew(agents=[scrum], tasks=[dep_task], process=Process.sequential, verbose=True)
     crew_deps.kickoff()
-    dep_list = parse_agent_output(dep_task.output.raw, DependencyGraphSchema)
+    try:
+        dep_list = parse_agent_output(dep_task.output.raw, DependencyGraphSchema)
+    except Exception:
+        logging.getLogger("devplanner").exception(
+            "Failed to parse dependencies output; attempting repair"
+        )
+        dep_list = _attempt_repair(scrum, dep_task.output.raw, DependencyGraphSchema, "dependencies output")
     _emit_progress(progress_callback, "scrum", "completed", "Tasks and dependency mapping generated.")
 
     # Step 4: Validate

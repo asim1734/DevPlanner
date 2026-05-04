@@ -7,6 +7,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from database import init_db
 from config import settings
+import logging
+import os
+
+
+# Ensure logs directory exists
+os.makedirs("/tmp/devplanner_logs", exist_ok=True)
+
+# Configure root logger to write detailed logs to a file
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    handlers=[
+        logging.FileHandler("/tmp/devplanner_logs/devplanner.log"),
+        logging.StreamHandler(),
+    ],
+)
 
 
 @asynccontextmanager
@@ -66,8 +82,11 @@ async def health():
 
 
 # Mount routers
-from routers import chat_router, generate_router, projects_router
+from routers import chat_router, generate_router, projects_router, logs_router
+from routers.admin import router as admin_router
 
 app.include_router(chat_router)
 app.include_router(generate_router)
 app.include_router(projects_router)
+app.include_router(logs_router)
+app.include_router(admin_router)
