@@ -131,8 +131,8 @@ function computeNodePositions(
   }
 
   // Position nodes
-  const horizontalSpacing = 300;
-  const verticalSpacing = 150;
+  const horizontalSpacing = 500;  // Increased from 300 for better spacing
+  const verticalSpacing = 280;   // Increased from 150 for better vertical spacing
   const nodeWidth = 250;
 
   for (const [level, nodeIds] of nodesByLevel) {
